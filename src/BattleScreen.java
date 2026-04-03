@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.util.Random;
 
 public class BattleScreen extends JPanel {
-
+//hi
     // ── Asset paths ───────────────────────────────────────────────────────────
     private static final String BG_PATH      = "assets/backgrounds/battle_bg.png";
     private static final String PANEL_PATH   = "assets/ui/panell.png";

@@ -20,6 +20,7 @@ public class GameModeScreen extends JPanel {
     private static final double ARCADE_Y     = 0.55;
     private static final double BACK_Y       = 0.65;
 
+
     private static final int BTN_WIDTH  = 250;
     private static final int BTN_HEIGHT = 60;
     private final GameWindow gameWindow;

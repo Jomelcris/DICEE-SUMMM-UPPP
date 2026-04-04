@@ -8,9 +8,9 @@ import java.io.IOException;
 import java.util.Random;
 
 public class BattleScreen extends JPanel {
-//hi
+
     // ── Asset paths ───────────────────────────────────────────────────────────
-    private static final String BG_PATH      = "assets/backgrounds/battle_bg.png";
+    private static final String BG_PATH      = "assets/backgrounds/fixed_platform1.png";
     private static final String PANEL_PATH   = "assets/ui/panell.png";
     private static final String ARROW_PATH    = "assets/ui/arrow_indicator.png";
     private static final String BTN_ATTACK_PATH   = "assets/buttons/btn_attack.png";
@@ -54,6 +54,22 @@ public class BattleScreen extends JPanel {
     private static final int PANEL_W   = 420;
     private static final int PANEL_H   = 200;
 
+    // ── Hit shake animation ───────────────────────────────────────────────────
+    // Which player is currently shaking: 0 = none, 1 = P1, 2 = P2
+    // ── Hit Shake Animation ───────────────────────────────────────────────────────
+    private int  shakingPlayer   = 0;   // 0 = none, 1 = P1, 2 = P2
+    private int  shakeFrames     = 0;
+    private int  shakeOffsetX    = 0;
+    private int  shakeOffsetY    = 0;
+    private int  spriteFlashAlpha = 0;  // White overlay ON the sprite only (0–255)
+    private int  shakeDir        = 1;
+
+    // NO full-screen flash — only the sprite itself flashes white
+    private static final int SHAKE_TOTAL_FRAMES = 40;   // 40 × 50ms = 2 seconds
+    private static final int SHAKE_INTERVAL_MS  = 50;   // 20 fps
+
+    private Timer shakeTimer;
+
     // ── Game state ────────────────────────────────────────────────────────────
     private final GameWindow gameWindow;
     private final String     gameMode;
@@ -68,7 +84,7 @@ public class BattleScreen extends JPanel {
     private boolean p1Stunned   = false, p2Stunned   = false;
     private int p1StunTurns = 0, p2StunTurns = 0;
 
-    private int  currentTurn  = 1;   // 1 = P1/Player, 2 = P2/Computer
+    private int  currentTurn  = 1;
     private int  roundCount   = 1;
     private boolean waitingForRoll = false;
     private boolean gameOver       = false;
@@ -128,8 +144,6 @@ public class BattleScreen extends JPanel {
         setLayout(null);
         loadImages();
         addMouseListeners();
-
-        // If PVC and computer goes first (random), handle it
         determineFirstTurn();
     }
 
@@ -138,7 +152,6 @@ public class BattleScreen extends JPanel {
         bgImage    = loadImage(BG_PATH);
         panelImage = loadImage(PANEL_PATH);
 
-        // ── New button and arrow assets ───────────────────────────────────────
         arrowImg       = loadImage(ARROW_PATH);
         btnAttackImg   = loadImage(BTN_ATTACK_PATH);
         btnSpecialImg  = loadImage(BTN_SPECIAL_PATH);
@@ -158,7 +171,6 @@ public class BattleScreen extends JPanel {
 
     // ── First turn determination ───────────────────────────────────────────────
     private void determineFirstTurn() {
-        // Simple coin flip — whoever rolls higher goes first
         int roll1 = rand.nextInt(6) + rand.nextInt(6) + 2;
         int roll2 = rand.nextInt(6) + rand.nextInt(6) + 2;
         currentTurn = (roll1 >= roll2) ? 1 : 2;
@@ -167,7 +179,6 @@ public class BattleScreen extends JPanel {
         addLog((currentTurn == 1 ? CHARACTERS[p1Index][0]
                 : CHARACTERS[p2Index][0]) + " goes first!");
 
-        // If computer goes first in PVC, trigger after short delay
         if (gameMode.equals("PVC") && currentTurn == 2) {
             Timer t = new Timer(1200, e -> { doComputerTurn(); repaint(); });
             t.setRepeats(false);
@@ -176,8 +187,68 @@ public class BattleScreen extends JPanel {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    //  PAINTING
+    //  HIT SHAKE ANIMATION
     // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Starts the shake+flash animation for the player who just took damage.
+     * @param player 1 = P1 was hit, 2 = P2 was hit
+     */
+    // Constants for the 2-second duration
+    // ── Animation Constants ───────────────────────────────────────────────────
+
+    // These constants define the 2-second "Ouch" feel
+
+    // ── Hit Shake Animation ───────────────────────────────────────────────────
+    private void startHitAnimation(int player) {
+        if (shakeTimer != null && shakeTimer.isRunning()) {
+            shakeTimer.stop();
+        }
+
+        shakingPlayer    = player;
+        shakeFrames      = SHAKE_TOTAL_FRAMES;
+        shakeDir         = 1;
+        spriteFlashAlpha = 255; // Sprite starts fully white, fades out
+
+        shakeTimer = new Timer(SHAKE_INTERVAL_MS, e -> {
+            if (shakeFrames <= 0) {
+                // Reset everything cleanly
+                shakeOffsetX     = 0;
+                shakeOffsetY     = 0;
+                spriteFlashAlpha = 0;
+                shakingPlayer    = 0;
+                shakeTimer.stop();
+                repaint();
+                return;
+            }
+
+            // progress: 1.0 (start) → 0.0 (end) — eased so movement slows down
+            double progress = (double) shakeFrames / SHAKE_TOTAL_FRAMES;
+            double eased    = progress * progress; // quadratic ease-out = slow motion feel
+
+            // Horizontal slide: large at start, shrinks as progress → 0
+            shakeOffsetX = (int)(20 * eased * shakeDir);
+
+            // Vertical jolt: sharp spike at start, dies off quickly
+            // Only active for first half of animation
+            if (progress > 0.5) {
+                shakeOffsetY = (shakeFrames % 3 == 0) ? -8 : (shakeFrames % 3 == 1 ? 4 : 0);
+            } else {
+                shakeOffsetY = 0; // Settles vertically in second half
+            }
+
+            // Sprite white flash: fades out over the full 2 seconds
+            spriteFlashAlpha = (int)(210 * eased); // fades with ease, max 210 (not blinding)
+
+            shakeDir = -shakeDir; // Alternate left/right
+            shakeFrames--;
+            repaint();
+        });
+
+        shakeTimer.start();
+    }
+
+    // ── Integrated paintComponent ─────────────────────────────────────────────
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -187,53 +258,93 @@ public class BattleScreen extends JPanel {
 
         int w = getWidth(), h = getHeight();
 
-        // ── Background ────────────────────────────────────────────────────────
+        // 1. Background
         if (bgImage != null) g2.drawImage(bgImage, 0, 0, w, h, null);
-        else { g2.setColor(new Color(100, 160, 220)); g2.fillRect(0, 0, w, h); }
+        else { g2.setColor(new Color(100, 100, 100)); g2.fillRect(0, 0, w, h); }
 
-        // ── Round indicator ───────────────────────────────────────────────────
+        // 2. Health & UI
         drawRoundBadge(g2, w);
-
-        // ── Health bars ───────────────────────────────────────────────────────
         drawHealthBar(g2, p1Hp, p1MaxHp, 30, 20, false);
         drawHealthBar(g2, p2Hp, p2MaxHp, w - 30 - HP_BAR_W, 20, true);
 
-        // ── Sprites ───────────────────────────────────────────────────────────
+        // 3. Sprites with Shake Offsets
         int groundY = (int)(h * 0.64);
+        int p1X = (int)(w * 0.08) + ((shakingPlayer == 1) ? shakeOffsetX : 0);
+        int p1Y = groundY - SPRITE_H + ((shakingPlayer == 1) ? shakeOffsetY : 0);
+        int p2X = (int)(w * 0.80) + ((shakingPlayer == 2) ? shakeOffsetX : 0);
+        int p2Y = groundY - SPRITE_H + ((shakingPlayer == 2) ? shakeOffsetY : 0);
 
-        int p1SpriteX = (int)(w * 0.05);
-        int p2SpriteX = (int)(w * 0.80);
+        drawSprite(g2, sprites[p1Index], p1X, p1Y, SPRITE_W, SPRITE_H, false, shakingPlayer == 1);
+        drawSprite(g2, sprites[p2Index], p2X, p2Y, SPRITE_W, SPRITE_H, true, shakingPlayer == 2);
 
-        // P1 sprite
-        if (sprites[p1Index] != null)
-            g2.drawImage(sprites[p1Index], p1SpriteX, groundY - SPRITE_H, SPRITE_W, SPRITE_H, null);
-        else drawPlaceholderSprite(g2, p1SpriteX, groundY - SPRITE_H, new Color(80, 140, 255));
-
-        // P2 sprite — flipped to face left
-        if (sprites[p2Index] != null)
-            g2.drawImage(sprites[p2Index], p2SpriteX + SPRITE_W, groundY - SPRITE_H,
-                    -SPRITE_W, SPRITE_H, null);
-        else drawPlaceholderSprite(g2, p2SpriteX, groundY - SPRITE_H, new Color(220, 80, 80));
-
-        // ── Turn indicator above sprite ───────────────────────────────────────
+        // 4. Action Panel & Overlays
         if (!gameOver) {
-            if (currentTurn == 1) drawTurnArrow(g2, p1SpriteX + SPRITE_W / 2, groundY - SPRITE_H - 12);
-            else                  drawTurnArrow(g2, p2SpriteX + SPRITE_W / 2, groundY - SPRITE_H - 12);
+            int arrowX = (currentTurn == 1) ? p1X + SPRITE_W/2 : p2X + SPRITE_W/2;
+            drawTurnArrow(g2, arrowX, groundY - SPRITE_H - 12);
         }
+        if (showDice) drawDice(g2, w / 2 - 160, groundY - 140);
 
-        // ── Dice display ──────────────────────────────────────────────────────
-        if (showDice) drawDice(g2, w / 2 - 60, groundY - 90);
-
-        // ── Action panel ─────────────────────────────────────────────────────
         int panelX = (w - PANEL_W) / 2;
         int panelY = h - PANEL_H - 20;
         drawActionPanel(g2, panelX, panelY, w, h);
-
-        // ── Battle log ────────────────────────────────────────────────────────
         drawBattleLog(g2, panelX, panelY - 85, PANEL_W);
 
-        // ── Game over overlay ─────────────────────────────────────────────────
         if (gameOver) drawGameOverOverlay(g2, w, h);
+    }
+
+    /**
+     * Draws a sprite with optional horizontal flip and red hit-flash overlay.
+     */
+    /**
+     * Draws a sprite. When isHit=true, overlays a white tint directly on the
+     * sprite only — no background rectangle, just the character flashing white.
+     */
+    private void drawSprite(Graphics2D g2, BufferedImage img,
+                            int x, int y, int w, int h,
+                            boolean flipX, boolean isHit) {
+
+        if (img != null) {
+            // --- Draw the sprite normally ---
+            if (flipX) {
+                g2.drawImage(img, x + w, y, -w, h, null);
+            } else {
+                g2.drawImage(img, x, y, w, h, null);
+            }
+
+            // --- White flash overlay clipped to sprite bounds only ---
+            if (isHit && spriteFlashAlpha > 0) {
+                // Create a white-tinted copy of just the sprite area
+                // Uses SRC_ATOP so the flash only paints where the sprite has pixels
+                BufferedImage flash = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D fg = flash.createGraphics();
+
+                // Draw the sprite into the temp buffer
+                if (flipX) {
+                    fg.drawImage(img, w, 0, -w, h, null);
+                } else {
+                    fg.drawImage(img, 0, 0, w, h, null);
+                }
+
+                // Paint white only over non-transparent pixels
+                fg.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_ATOP,
+                        spriteFlashAlpha / 255f));
+                fg.setColor(Color.WHITE);
+                fg.fillRect(0, 0, w, h);
+                fg.dispose();
+
+                // Draw the flash buffer onto the screen
+                g2.drawImage(flash, x, y, null);
+            }
+
+        } else {
+            // Fallback placeholder box
+            Color c = flipX ? new Color(220, 80, 80) : new Color(80, 140, 255);
+            g2.setColor(c);
+            g2.fillRoundRect(x + 40, y, 80, 120, 10, 10);
+            g2.setColor(Color.WHITE);
+            g2.setFont(new Font("Arial", Font.BOLD, 12));
+            g2.drawString("?", x + 74, y + 65);
+        }
     }
 
     // ── Round badge ───────────────────────────────────────────────────────────
@@ -262,13 +373,9 @@ public class BattleScreen extends JPanel {
         BufferedImage bar = getHpBarImage(pct);
 
         if (bar != null) {
-            if (flip) {
-                g2.drawImage(bar, x + HP_BAR_W, y, -HP_BAR_W, HP_BAR_H, null);
-            } else {
-                g2.drawImage(bar, x, y, HP_BAR_W, HP_BAR_H, null);
-            }
+            if (flip) g2.drawImage(bar, x + HP_BAR_W, y, -HP_BAR_W, HP_BAR_H, null);
+            else      g2.drawImage(bar, x, y, HP_BAR_W, HP_BAR_H, null);
         } else {
-            // Fallback drawn bar
             g2.setColor(new Color(60, 60, 60, 180));
             g2.fillRoundRect(x, y, HP_BAR_W, HP_BAR_H, 10, 10);
             Color barColor = pct > 0.6 ? new Color(80, 200, 80)
@@ -278,7 +385,6 @@ public class BattleScreen extends JPanel {
             g2.fillRoundRect(x + 2, y + 2, (int)((HP_BAR_W - 4) * pct), HP_BAR_H - 4, 8, 8);
         }
 
-        // HP text
         g2.setFont(new Font("Arial", Font.BOLD, 13));
         g2.setColor(Color.WHITE);
         String hpText = hp + " / " + maxHp;
@@ -287,7 +393,6 @@ public class BattleScreen extends JPanel {
     }
 
     private BufferedImage getHpBarImage(double pct) {
-        // 0=0%, 1=20%, 2=40%, 3=60%, 4=80%, 5=100%
         if (pct <= 0.0)  return hpBars[0];
         if (pct <= 0.20) return hpBars[1];
         if (pct <= 0.40) return hpBars[2];
@@ -300,9 +405,8 @@ public class BattleScreen extends JPanel {
     private void drawTurnArrow(Graphics2D g2, int cx, int y) {
         int[] px = { cx - 10, cx + 10, cx };
         int[] py = { y, y, y + 14 };
-        g2.setColor(new Color(0, 0, 0));
+        g2.setColor(Color.BLACK);
         g2.fillPolygon(px, py, 3);
-        g2.setColor(new Color(0, 0, 0));
         g2.setStroke(new BasicStroke(1.5f));
         g2.drawPolygon(px, py, 3);
     }
@@ -310,33 +414,31 @@ public class BattleScreen extends JPanel {
     // ── Dice ─────────────────────────────────────────────────────────────────
     private void drawDice(Graphics2D g2, int x, int y) {
         drawSingleDie(g2, x, y, die1Val);
-        drawSingleDie(g2, x + 64, y, die2Val);
+        drawSingleDie(g2, x + 140, y, die2Val);  // wider gap for bigger dice
 
-        g2.setFont(new Font("Arial", Font.BOLD, 14));
+        g2.setFont(new Font("Arial", Font.BOLD, 26));  // bigger font
         g2.setColor(Color.WHITE);
         int total = die1Val + die2Val;
-        g2.drawString("= " + total, x + 130, y + 32);
-        g2.setFont(new Font("Arial", Font.BOLD, 12));
+        g2.drawString("= " + total, x + 290, y + 60);
+        g2.setFont(new Font("Arial", Font.BOLD, 22));
         g2.setColor(new Color(255, 180, 50));
-        g2.drawString("DMG: " + lastDamage, x + 130, y + 50);
+        g2.drawString("DMG: " + lastDamage, x + 290, y + 90);
     }
 
     private void drawSingleDie(Graphics2D g2, int x, int y, int val) {
-        int s = 52;
+        int s = 130;  // was 52, now 90
         g2.setColor(Color.WHITE);
-        g2.fillRoundRect(x, y, s, s, 10, 10);
+        g2.fillRoundRect(x, y, s, s, 14, 14);
         g2.setColor(new Color(80, 80, 80));
-        g2.setStroke(new BasicStroke(2));
-        g2.drawRoundRect(x, y, s, s, 10, 10);
-
+        g2.setStroke(new BasicStroke(2.5f));
+        g2.drawRoundRect(x, y, s, s, 14, 14);
         g2.setColor(new Color(30, 30, 30));
         int[][] dots = getDotPositions(val, x, y, s);
-        for (int[] dot : dots) g2.fillOval(dot[0], dot[1], 8, 8);
+        for (int[] dot : dots) g2.fillOval(dot[0], dot[1], 18, 18);  // bigger dots too
     }
 
     private int[][] getDotPositions(int val, int x, int y, int s) {
-        int m = s / 2; // mid
-        int q = s / 4; // quarter
+        int m = s / 2, q = s / 4;
         switch (val) {
             case 1: return new int[][]{ {x+m-4, y+m-4} };
             case 2: return new int[][]{ {x+q-4, y+q-4}, {x+3*q-4, y+3*q-4} };
@@ -346,17 +448,16 @@ public class BattleScreen extends JPanel {
             case 5: return new int[][]{ {x+q-4, y+q-4}, {x+3*q-4, y+q-4}, {x+m-4, y+m-4},
                     {x+q-4, y+3*q-4}, {x+3*q-4, y+3*q-4} };
             case 6: return new int[][]{ {x+q-4, y+q-4}, {x+3*q-4, y+q-4},
-                    {x+q-4, y+m-4},  {x+3*q-4, y+m-4},
-                    {x+q-4, y+3*q-4},{x+3*q-4, y+3*q-4} };
+                    {x+q-4, y+m-4},   {x+3*q-4, y+m-4},
+                    {x+q-4, y+3*q-4}, {x+3*q-4, y+3*q-4} };
             default: return new int[][]{};
         }
     }
 
     // ── Action panel ──────────────────────────────────────────────────────────
     private void drawActionPanel(Graphics2D g2, int px, int py, int w, int h) {
-        if (panelImage != null) {
-            g2.drawImage(panelImage, px, py, PANEL_W, PANEL_H, null);
-        } else {
+        if (panelImage != null) g2.drawImage(panelImage, px, py, PANEL_W, PANEL_H, null);
+        else {
             g2.setColor(new Color(20, 60, 30, 230));
             g2.fillRoundRect(px, py, PANEL_W, PANEL_H, 20, 20);
             g2.setColor(new Color(80, 140, 60));
@@ -367,48 +468,39 @@ public class BattleScreen extends JPanel {
         boolean isPlayerTurn = (currentTurn == 1) ||
                 (currentTurn == 2 && gameMode.equals("PVP"));
 
-        // Button grid — 2x2
         int btnW = PANEL_W / 2 - 30;
         int btnH = 55;
-        int col1 = px + 20;
-        int col2 = px + PANEL_W / 2 + 10;
-        int row1 = py + 25;
-        int row2 = py + PANEL_H / 2 + 10;
+        int col1 = px + 20,           col2 = px + PANEL_W / 2 + 10;
+        int row1 = py + 25,           row2 = py + PANEL_H / 2 + 10;
 
         attackRect.setBounds(col1, row1, btnW, btnH);
         specialRect.setBounds(col2, row1, btnW, btnH);
         defendRect.setBounds(col1, row2, btnW, btnH);
         wildRect.setBounds(col2, row2, btnW, btnH);
 
-        // Cooldown / availability
         boolean canSpecial = (currentTurn == 1) ? p1SkillCd == 0  : p2SkillCd == 0;
         boolean canDefend  = (currentTurn == 1) ? p1DefendCd == 0 : p2DefendCd == 0;
         boolean hasWild    = (currentTurn == 1) ? p1Wildcard != null : p2Wildcard != null;
 
         if (!gameOver && isPlayerTurn && !waitingForRoll) {
-            drawActionBtn(g2, attackRect,  hoverAttack,  "▶  ATTACK",  true);
-            drawActionBtn(g2, specialRect, hoverSpecial, "SPECIAL",    canSpecial);
-            drawActionBtn(g2, defendRect,  hoverDefend,  "DEFEND",     canDefend);
-            drawActionBtn(g2, wildRect,    hoverWild,    "WILDCARD",   hasWild);
+            drawActionBtn(g2, attackRect,  hoverAttack,  "▶  ATTACK", true);
+            drawActionBtn(g2, specialRect, hoverSpecial, "SPECIAL",   canSpecial);
+            drawActionBtn(g2, defendRect,  hoverDefend,  "DEFEND",    canDefend);
+            drawActionBtn(g2, wildRect,    hoverWild,    "WILDCARD",  hasWild);
         } else if (waitingForRoll) {
-            // Show "TAP TO ROLL" prompt
             g2.setFont(new Font("Arial", Font.BOLD, 22));
             g2.setColor(new Color(255, 220, 80));
             String rollMsg = "Click anywhere to roll dice!";
             FontMetrics fm = g2.getFontMetrics();
-            g2.drawString(rollMsg, px + (PANEL_W - fm.stringWidth(rollMsg)) / 2,
-                    py + PANEL_H / 2 + 10);
+            g2.drawString(rollMsg, px + (PANEL_W - fm.stringWidth(rollMsg)) / 2, py + PANEL_H / 2 + 10);
         } else if (!gameOver && !isPlayerTurn) {
-            // Computer thinking
             g2.setFont(new Font("Arial", Font.BOLD, 18));
             g2.setColor(new Color(200, 200, 200));
             String wait = CHARACTERS[p2Index][0] + " is thinking...";
             FontMetrics fm = g2.getFontMetrics();
-            g2.drawString(wait, px + (PANEL_W - fm.stringWidth(wait)) / 2,
-                    py + PANEL_H / 2 + 10);
+            g2.drawString(wait, px + (PANEL_W - fm.stringWidth(wait)) / 2, py + PANEL_H / 2 + 10);
         }
 
-        // Whose turn label
         if (!gameOver) {
             String turnLabel = (currentTurn == 1)
                     ? (gameMode.equals("PVP") ? "PLAYER 1'S TURN" : "YOUR TURN")
@@ -416,14 +508,12 @@ public class BattleScreen extends JPanel {
             g2.setFont(new Font("Arial", Font.BOLD, 12));
             g2.setColor(new Color(200, 200, 200, 180));
             FontMetrics fm = g2.getFontMetrics();
-            g2.drawString(turnLabel, px + (PANEL_W - fm.stringWidth(turnLabel)) / 2,
-                    py + PANEL_H - 8);
+            g2.drawString(turnLabel, px + (PANEL_W - fm.stringWidth(turnLabel)) / 2, py + PANEL_H - 8);
         }
     }
 
     private void drawActionBtn(Graphics2D g2, Rectangle r,
                                boolean hover, String label, boolean enabled) {
-        // Pick the correct button image based on label
         BufferedImage btnImg = null;
         switch (label) {
             case "▶  ATTACK": btnImg = btnAttackImg;   break;
@@ -432,14 +522,12 @@ public class BattleScreen extends JPanel {
             case "WILDCARD":  btnImg = btnWildcardImg; break;
         }
 
-        // Draw button image or fallback to drawn button
         if (btnImg != null) {
             float alpha = enabled ? 1.0f : 0.4f;
             g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
             g2.drawImage(btnImg, r.x, r.y, r.width, r.height, null);
             g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
         } else {
-            // Fallback if image missing
             Color bg = !enabled ? new Color(60, 60, 60, 160)
                     : hover    ? new Color(100, 180, 80)
                     : new Color(30, 100, 50, 200);
@@ -448,26 +536,19 @@ public class BattleScreen extends JPanel {
             g2.setColor(Color.WHITE);
             g2.setFont(new Font("Arial", Font.BOLD, 15));
             FontMetrics fm = g2.getFontMetrics();
-            g2.drawString(label,
-                    r.x + (r.width - fm.stringWidth(label)) / 2,
+            g2.drawString(label, r.x + (r.width - fm.stringWidth(label)) / 2,
                     r.y + (r.height + fm.getAscent() - fm.getDescent()) / 2);
         }
 
-        // Draw arrow to the LEFT of the hovered button
-        // Draw arrow INSIDE the button on the left side
         if (hover && enabled) {
-            int arrowW = 25;
-            int arrowH = 25;
-            int arrowX = r.x  - 2;                        // 8px from left edge of button
-            int arrowY = r.y + (r.height - arrowH) / 2;  // vertically centered
-
+            int arrowW = 25, arrowH = 25;
+            int arrowX = r.x - 2;
+            int arrowY = r.y + (r.height - arrowH) / 2;
             if (arrowImg != null) {
                 g2.drawImage(arrowImg, arrowX, arrowY, arrowW, arrowH, null);
             } else {
-                // Fallback drawn arrow
                 g2.setColor(new Color(255, 220, 50));
-                int cx = arrowX + arrowW / 2;
-                int cy = arrowY + arrowH / 2;
+                int cx = arrowX + arrowW / 2, cy = arrowY + arrowH / 2;
                 int[] px = { cx - 8, cx + 8, cx - 8 };
                 int[] py = { cy - 8, cy,     cy + 8  };
                 g2.fillPolygon(px, py, 3);
@@ -479,7 +560,6 @@ public class BattleScreen extends JPanel {
     private void drawBattleLog(Graphics2D g2, int x, int y, int w) {
         g2.setColor(new Color(0, 0, 0, 140));
         g2.fillRoundRect(x, y, w, 78, 10, 10);
-
         g2.setFont(new Font("Arial", Font.PLAIN, 13));
         g2.setColor(new Color(180, 180, 180));
         if (!logLine1.isEmpty()) g2.drawString(logLine1, x + 10, y + 20);
@@ -489,26 +569,15 @@ public class BattleScreen extends JPanel {
         if (!logLine3.isEmpty()) g2.drawString(logLine3, x + 10, y + 60);
     }
 
-    // ── Placeholder sprite ────────────────────────────────────────────────────
-    private void drawPlaceholderSprite(Graphics2D g2, int x, int y, Color c) {
-        g2.setColor(c);
-        g2.fillRoundRect(x + 40, y, 80, 120, 10, 10);
-        g2.setColor(Color.WHITE);
-        g2.setFont(new Font("Arial", Font.BOLD, 12));
-        g2.drawString("?", x + 74, y + 65);
-    }
-
     // ── Game over overlay ─────────────────────────────────────────────────────
     private void drawGameOverOverlay(Graphics2D g2, int w, int h) {
         g2.setColor(new Color(0, 0, 0, 160));
         g2.fillRect(0, 0, w, h);
-
         g2.setFont(new Font("Arial", Font.BOLD, 52));
         g2.setColor(new Color(255, 220, 50));
         FontMetrics fm = g2.getFontMetrics();
         String title = winner + " WINS!";
         g2.drawString(title, (w - fm.stringWidth(title)) / 2, h / 2 - 20);
-
         g2.setFont(new Font("Arial", Font.PLAIN, 18));
         g2.setColor(new Color(200, 200, 200));
         String sub = "Returning to menu...";
@@ -526,7 +595,6 @@ public class BattleScreen extends JPanel {
         logLine3 = msg;
     }
 
-    // ── Player clicks an action button ────────────────────────────────────────
     private void onActionChosen(String action) {
         boolean isP1 = (currentTurn == 1);
         String attackerName = CHARACTERS[isP1 ? p1Index : p2Index][0];
@@ -538,39 +606,32 @@ public class BattleScreen extends JPanel {
                 waitingForRoll = true;
                 repaint();
                 break;
-
             case "SPECIAL":
                 if ((isP1 && p1SkillCd > 0) || (!isP1 && p2SkillCd > 0)) {
-                    addLog("Special is on cooldown!");
-                    return;
+                    addLog("Special is on cooldown!"); return;
                 }
                 doSpecialSkill(isP1, attackerName, defenderName);
                 endTurn();
                 break;
-
             case "DEFEND":
                 if ((isP1 && p1DefendCd > 0) || (!isP1 && p2DefendCd > 0)) {
-                    addLog("Defend is on cooldown!");
-                    return;
+                    addLog("Defend is on cooldown!"); return;
                 }
                 if (isP1) { p1Defending = true; p1DefendCd = 3; }
                 else       { p2Defending = true; p2DefendCd = 3; }
                 addLog(attackerName + " takes a defensive stance!");
                 endTurn();
                 break;
-
             case "WILDCARD":
                 String wc = isP1 ? p1Wildcard : p2Wildcard;
                 if (wc == null) { addLog("No wildcard available!"); return; }
                 doWildcard(isP1, wc, attackerName, defenderName);
-                if (isP1) p1Wildcard = null;
-                else      p2Wildcard = null;
+                if (isP1) p1Wildcard = null; else p2Wildcard = null;
                 endTurn();
                 break;
         }
     }
 
-    // ── Roll dice and apply damage ────────────────────────────────────────────
     private void doRollAndAttack() {
         waitingForRoll = false;
         boolean isP1   = (currentTurn == 1);
@@ -585,38 +646,38 @@ public class BattleScreen extends JPanel {
         double mult = Double.parseDouble(CHARACTERS[attackerIdx][3]);
         int damage = (int)(total * mult);
 
-        // Apply defender's defend buff
         boolean defending = isP1 ? p2Defending : p1Defending;
         if (defending) {
             damage = Math.max(1, damage / 2);
-            if (isP1) p2Defending = false;
-            else      p1Defending = false;
+            if (isP1) p2Defending = false; else p1Defending = false;
             addLog(defenderName + " blocked! Damage halved.");
         }
 
         lastDamage = damage;
         showDice   = true;
 
-        // Apply damage
-        if (isP1) p2Hp = Math.max(0, p2Hp - damage);
-        else      p1Hp = Math.max(0, p1Hp - damage);
+        // Apply damage and trigger hit animation on the DEFENDER
+        if (isP1) {
+            p2Hp = Math.max(0, p2Hp - damage);
+            startHitAnimation(2);   // P2 was hit
+        } else {
+            p1Hp = Math.max(0, p1Hp - damage);
+            startHitAnimation(1);   // P1 was hit
+        }
 
         addLog(attackerName + " rolled " + die1Val + "+" + die2Val +
                 " = " + total + " × " + mult + "×");
         addLog(attackerName + " deals " + damage + " damage to " + defenderName + "!");
 
-        // Maybe grant wildcard every 3 rounds
         if (roundCount % 3 == 0 && rand.nextInt(100) < 30) {
             String[] wildcards = {"FREEZE", "DOUBLE ROLL", "HEAL", "SHIELD"};
-            String wc = wildcards[rand.nextInt(wildcards.length)];
-            if (isP1) p1Wildcard = wc;
-            else      p2Wildcard = wc;
-            addLog(attackerName + " drew wildcard: " + wc + "!");
+            String w = wildcards[rand.nextInt(wildcards.length)];
+            if (isP1) p1Wildcard = w; else p2Wildcard = w;
+            addLog(attackerName + " drew wildcard: " + w + "!");
         }
 
         repaint();
 
-        // Hide dice after 2 seconds then end turn
         Timer t = new Timer(2000, e -> {
             showDice = false;
             checkGameOver();
@@ -627,7 +688,6 @@ public class BattleScreen extends JPanel {
         t.start();
     }
 
-    // ── Special skills ────────────────────────────────────────────────────────
     private void doSpecialSkill(boolean isP1, String attacker, String defender) {
         int idx = isP1 ? p1Index : p2Index;
         String charName = CHARACTERS[idx][0];
@@ -640,20 +700,17 @@ public class BattleScreen extends JPanel {
                 break;
             case "Zyah":
                 addLog(attacker + " uses Dancehall Fever! Extra turn granted!");
-                // Grant extra turn by NOT switching currentTurn
                 doRollAndAttack();
                 return;
             case "Raze":
-                // Boosted attack
                 die1Val = rand.nextInt(6) + 1;
                 die2Val = rand.nextInt(6) + 1;
                 int total = die1Val + die2Val;
                 double mult = Double.parseDouble(CHARACTERS[idx][3]);
                 int dmg = (int)(total * mult) + 8;
-                lastDamage = dmg;
-                showDice   = true;
-                if (isP1) p2Hp = Math.max(0, p2Hp - dmg);
-                else      p1Hp = Math.max(0, p1Hp - dmg);
+                lastDamage = dmg; showDice = true;
+                if (isP1) { p2Hp = Math.max(0, p2Hp - dmg); startHitAnimation(2); }
+                else      { p1Hp = Math.max(0, p1Hp - dmg); startHitAnimation(1); }
                 addLog(attacker + " uses Blazing Combo! +" + dmg + " dmg!");
                 break;
             case "Vibe":
@@ -662,6 +719,8 @@ public class BattleScreen extends JPanel {
                 break;
             case "Torque":
                 addLog(attacker + " uses Earthquake Stomp! " + defender + " stunned!");
+                // Shake the stunned defender
+                startHitAnimation(isP1 ? 2 : 1);
                 if (isP1) { p2Stunned = true; p2StunTurns = 2; }
                 else      { p1Stunned = true; p1StunTurns = 2; }
                 break;
@@ -683,12 +742,12 @@ public class BattleScreen extends JPanel {
         }
     }
 
-    // ── Wildcard effects ──────────────────────────────────────────────────────
     private void doWildcard(boolean isP1, String wc, String attacker, String defender) {
         switch (wc) {
             case "FREEZE":
                 if (isP1) { p2Stunned = true; p2StunTurns = 1; }
                 else      { p1Stunned = true; p1StunTurns = 1; }
+                startHitAnimation(isP1 ? 2 : 1);
                 addLog(attacker + " used FREEZE! " + defender + " loses next turn!");
                 break;
             case "DOUBLE ROLL":
@@ -702,30 +761,24 @@ public class BattleScreen extends JPanel {
                 addLog(attacker + " used HEAL! Restored " + heal + " HP!");
                 break;
             case "SHIELD":
-                if (isP1) p1Defending = true;
-                else      p2Defending = true;
+                if (isP1) p1Defending = true; else p2Defending = true;
                 addLog(attacker + " used SHIELD! Next hit reduced by 50%!");
                 break;
         }
     }
 
-    // ── End turn logic ────────────────────────────────────────────────────────
     private void endTurn() {
-        // Reduce cooldowns
         if (p1SkillCd  > 0) p1SkillCd--;
         if (p2SkillCd  > 0) p2SkillCd--;
         if (p1DefendCd > 0) p1DefendCd--;
         if (p2DefendCd > 0) p2DefendCd--;
 
-        // Stun check
         if (p1Stunned) { p1StunTurns--; if (p1StunTurns <= 0) { p1Stunned = false; addLog(CHARACTERS[p1Index][0] + " recovered from stun!"); } }
         if (p2Stunned) { p2StunTurns--; if (p2StunTurns <= 0) { p2Stunned = false; addLog(CHARACTERS[p2Index][0] + " recovered from stun!"); } }
 
-        // Switch turn
         currentTurn = (currentTurn == 1) ? 2 : 1;
         if (currentTurn == 1) roundCount++;
 
-        // Stun skip
         if (currentTurn == 1 && p1Stunned) {
             addLog(CHARACTERS[p1Index][0] + " is stunned and skips their turn!");
             currentTurn = 2;
@@ -736,7 +789,6 @@ public class BattleScreen extends JPanel {
 
         repaint();
 
-        // If computer's turn in PVC, auto-play after delay
         if (!gameOver && gameMode.equals("PVC") && currentTurn == 2) {
             Timer t = new Timer(1200, e -> { doComputerTurn(); repaint(); });
             t.setRepeats(false);
@@ -744,13 +796,11 @@ public class BattleScreen extends JPanel {
         }
     }
 
-    // ── Computer AI turn ──────────────────────────────────────────────────────
     private void doComputerTurn() {
         if (gameOver) return;
         String compName   = CHARACTERS[p2Index][0];
         String playerName = CHARACTERS[p1Index][0];
 
-        // Simple AI decision
         int decision = rand.nextInt(100);
         if (p2SkillCd == 0 && decision < 30) {
             addLog(compName + " uses their special skill!");
@@ -782,7 +832,10 @@ public class BattleScreen extends JPanel {
 
         lastDamage = damage;
         showDice   = true;
+
+        // P1 takes the hit
         p1Hp = Math.max(0, p1Hp - damage);
+        startHitAnimation(1);   // P1 was hit
 
         addLog(CHARACTERS[p2Index][0] + " rolled " + die1Val + "+" + die2Val +
                 " = " + total + " × " + mult + "×");
@@ -800,7 +853,6 @@ public class BattleScreen extends JPanel {
         t.start();
     }
 
-    // ── Win condition ─────────────────────────────────────────────────────────
     private void checkGameOver() {
         if (p1Hp <= 0 || p2Hp <= 0) {
             gameOver = true;
@@ -835,8 +887,6 @@ public class BattleScreen extends JPanel {
         addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) {
                 if (gameOver) return;
-
-                // If waiting for dice roll, any click rolls
                 if (waitingForRoll) { doRollAndAttack(); return; }
 
                 boolean isPlayerTurn = (currentTurn == 1) ||

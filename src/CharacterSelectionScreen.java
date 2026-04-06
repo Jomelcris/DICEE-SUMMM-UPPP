@@ -30,7 +30,7 @@ public class CharacterSelectionScreen extends JPanel {
     private static final int BADGE_H     = 40;
 
     private static final String[][] CHARACTERS = {
-            { "Echo",   "Assassin", "Osaka, Japan",       "80",  "5.0×", "Phantom Dance – Dodge next 2 attacks (CD: 5 turns)"         },
+            { "Echo",   "Assassin", "Osaka, Japan",       "80",  "4.0×", "Phantom Dance – Dodge next 2 attacks (CD: 5 turns)"         },
             { "Zyah",   "Assassin", "Kingston, Jamaica",  "80",  "4.0×", "Dancehall Fever – Guaranteed extra turn (CD: 4 turns)"      },
             { "Raze",   "Fighter",  "Seoul, South Korea", "115", "3.0×", "Blazing Combo – +8 damage for 3 attacks (CD: 5 turns)"      },
             { "Vibe",   "Fighter",  "Milan, Italy",       "110", "3.0×", "House Foundation – 50% dmg reduction 2 turns (CD: 4 turns)" },

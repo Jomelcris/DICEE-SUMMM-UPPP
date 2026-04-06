@@ -7,7 +7,7 @@ import java.io.File;
 import java.io.IOException;
 public class HomeScreen extends JPanel {
 
-    private static final String BG_PATH        = "assets/backgrounds/background.gif";
+    private static final String BG_PATH        = "assets/backgrounds/background.png";
     private static final String BTN_PLAY_PATH  = "assets/buttons/btn_play.png";
     private static final String BTN_SET_PATH   = "assets/buttons/btn_settings.png";
     private static final String BTN_QUIT_PATH  = "assets/buttons/btn_quit.png";

@@ -12,14 +12,14 @@ public class VersusScreen extends JPanel {
     private static final String VS_LABEL_PATH  = "assets/ui/label_vs.png";
 
     private static final String[] SPRITE_FILES = {
-            "assets/characters/sprites/s_echo.png",
-            "assets/characters/sprites/s_zyah.png",
-            "assets/characters/sprites/s_raze.png",
-            "assets/characters/sprites/s_vibe.png",
-            "assets/characters/sprites/s_torque.png",
-            "assets/characters/sprites/s_luma.png",
-            "assets/characters/sprites/s_lyric.png",
-            "assets/characters/sprites/s_ayo.png"
+            "assets/characters/portraits/echo.gif",
+            "assets/characters/portraits/zyah.gif",
+            "assets/characters/portraits/raze.gif",
+            "assets/characters/portraits/vibe.gif",
+            "assets/characters/portraits/torque.gif",
+            "assets/characters/portraits/luma.gif",
+            "assets/characters/portraits/lyric.gif",
+            "assets/characters/portraits/ayo.gif"
     };
 
     private static final String[][] CHARACTERS = {
@@ -91,51 +91,36 @@ public class VersusScreen extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,      RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,     RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 
         int w = getWidth();
         int h = getHeight();
 
-        // ── Background ────────────────────────────────────────────────────────
+        // ── Background (full screen, no white panel) ──────────────────────────
         if (bgImage != null) {
             g2.drawImage(bgImage, 0, 0, w, h, null);
         } else {
-            g2.setColor(new Color(100, 180, 220));
+            g2.setColor(new Color(30, 20, 10));
             g2.fillRect(0, 0, w, h);
         }
 
-        // ── Center panel ──────────────────────────────────────────────────────
-        int panelW = (int)(w * 0.75);
-        int panelH = (int)(h * 0.65);
-        int panelX = (w - panelW) / 2;
-        int panelY = (h - panelH) / 2;
+        // ── Dark overlay to make text/sprites pop ─────────────────────────────
+        g2.setColor(new Color(0, 0, 0, 80));
+        g2.fillRect(0, 0, w, h);
 
-        if (panelImage != null) {
-            g2.drawImage(panelImage, panelX, panelY, panelW, panelH, null);
-        } else {
-            g2.setColor(Color.WHITE);
-            g2.fillRoundRect(panelX, panelY, panelW, panelH, 30, 30);
-        }
+        // ── Green name bar at top center ──────────────────────────────────────
+        int barW = (int)(w * 0.55);
+        int barH = 50;
+        int barX = (w - barW) / 2;
+        int barY = (int)(h * 0.08);
 
-        // ── Green bar at top of panel ─────────────────────────────────────────
-        int barW = (int)(panelW * 0.80);
-        int barH = 45;
-        int barX = panelX + (panelW - barW) / 2;
-        int barY = panelY + 15;
-
-// Outer dark green border
         g2.setColor(new Color(30, 80, 30));
         g2.fillRoundRect(barX, barY, barW, barH, 20, 20);
-
-// Inner lighter green fill
         g2.setColor(new Color(80, 140, 60));
         g2.fillRoundRect(barX + 3, barY + 3, barW - 6, barH - 6, 16, 16);
 
-// Text inside the bar
-        g2.setFont(new Font("Arial", Font.BOLD, 20));
+        g2.setFont(new Font("Arial", Font.BOLD, 22));
         g2.setColor(Color.WHITE);
         FontMetrics fmBar = g2.getFontMetrics();
         String barText = CHARACTERS[p1Index][0] + " VS " + CHARACTERS[p2Index][0];
@@ -143,62 +128,58 @@ public class VersusScreen extends JPanel {
                 barX + (barW - fmBar.stringWidth(barText)) / 2,
                 barY + (barH + fmBar.getAscent() - fmBar.getDescent()) / 2);
 
-        // ── Sprite area ───────────────────────────────────────────────────────
-        int spriteY = panelY + barH + 40;
+        // ── Sprite positions — large, facing each other ───────────────────────
+        int spriteW = 220;
+        int spriteH = 280;
+        int groundY = (int)(h * 0.82); // bottom of sprite
 
-        // P1 sprite — left side
-        int p1SpriteX = panelX + (panelW / 4) - (SPRITE_WIDTH / 2);
+        int p1SpriteX = (int)(w * 0.15);  // left side
+        int p2SpriteX = (int)(w * 0.65);  // right side
+        int spriteY   = groundY - spriteH;
+
+        // P1 — faces right (normal)
         if (sprites[p1Index] != null) {
-            g2.drawImage(sprites[p1Index], p1SpriteX, spriteY,
-                    SPRITE_WIDTH, SPRITE_HEIGHT, null);
+            g2.drawImage(sprites[p1Index], p1SpriteX, spriteY, spriteW, spriteH, null);
         } else {
-            g2.setColor(new Color(80, 140, 255, 100));
-            g2.fillRect(p1SpriteX, spriteY, SPRITE_WIDTH, SPRITE_HEIGHT);
+            g2.setColor(new Color(80, 140, 255, 180));
+            g2.fillRoundRect(p1SpriteX, spriteY, spriteW, spriteH, 16, 16);
         }
 
-        // P2 sprite — right side
-        int p2SpriteX = panelX + (panelW * 3 / 4) - (SPRITE_WIDTH / 2);
+        // P2 — flipped to face left (toward P1)
         if (sprites[p2Index] != null) {
-            // Flip P2 sprite horizontally so they face each other
-            g2.drawImage(sprites[p2Index],
-                    p2SpriteX + SPRITE_WIDTH, spriteY,
-                    -SPRITE_WIDTH, SPRITE_HEIGHT, null);
+            g2.drawImage(sprites[p2Index], p2SpriteX + spriteW, spriteY, -spriteW, spriteH, null);
         } else {
-            g2.setColor(new Color(220, 80, 80, 100));
-            g2.fillRect(p2SpriteX, spriteY, SPRITE_WIDTH, SPRITE_HEIGHT);
+            g2.setColor(new Color(220, 80, 80, 180));
+            g2.fillRoundRect(p2SpriteX, spriteY, spriteW, spriteH, 16, 16);
         }
 
-        // ── VS label in the center ────────────────────────────────────────────
-        int vsW = 120;
-        int vsH = 60;
+        // ── VS label centered between sprites ────────────────────────────────
+        int vsW = 130, vsH = 70;
         int vsX = (w - vsW) / 2;
-        int vsY = spriteY + (SPRITE_HEIGHT / 2) - (vsH / 2);
+        int vsY = spriteY + (spriteH / 2) - (vsH / 2);
 
         if (vsLabelImage != null) {
             g2.drawImage(vsLabelImage, vsX, vsY, vsW, vsH, null);
         } else {
-            g2.setFont(new Font("Arial", Font.BOLD, 48));
-            g2.setColor(new Color(150, 20, 20));
+            g2.setFont(new Font("Arial", Font.BOLD, 56));
+            g2.setColor(new Color(200, 30, 30));
             FontMetrics fm = g2.getFontMetrics();
-            g2.drawString("VS", (w - fm.stringWidth("VS")) / 2,
-                    vsY + fm.getAscent());
+            g2.drawString("VS", (w - fm.stringWidth("VS")) / 2, vsY + fm.getAscent());
         }
 
-        // ── Player name labels below sprites ──────────────────────────────────
-        int nameY = spriteY + SPRITE_HEIGHT + 25;
-
-        // P1 name
+        // ── Player name labels below each sprite ──────────────────────────────
+        int nameY = groundY + 20;
         g2.setFont(new Font("Arial", Font.BOLD, 18));
-        g2.setColor(new Color(80, 140, 255));
-        FontMetrics fm = g2.getFontMetrics();
-        String p1Name = p1Label + " - " + CHARACTERS[p1Index][0];
-        g2.drawString(p1Name,
-                p1SpriteX + (SPRITE_WIDTH - fm.stringWidth(p1Name)) / 2, nameY);
 
-        // P2 name
-        g2.setColor(new Color(220, 80, 80));
-        String p2Name = p2Label + " - " + CHARACTERS[p2Index][0];
-        g2.drawString(p2Name,
-                p2SpriteX + (SPRITE_WIDTH - fm.stringWidth(p2Name)) / 2, nameY);
+        // P1 label
+        g2.setColor(new Color(120, 180, 255));
+        FontMetrics fm = g2.getFontMetrics();
+        String p1Name = p1Label + " — " + CHARACTERS[p1Index][0];
+        g2.drawString(p1Name, p1SpriteX + (spriteW - fm.stringWidth(p1Name)) / 2, nameY);
+
+        // P2 label
+        g2.setColor(new Color(255, 120, 120));
+        String p2Name = p2Label + " — " + CHARACTERS[p2Index][0];
+        g2.drawString(p2Name, p2SpriteX + (spriteW - fm.stringWidth(p2Name)) / 2, nameY);
     }
 }

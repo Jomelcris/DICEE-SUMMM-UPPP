@@ -25,14 +25,14 @@ public class BattleScreen extends JPanel {
     private static final String HP_100_PATH  = "assets/healthbar/health_bar_100.png";
 
     private static final String[] SPRITE_FILES = {
-            "assets/characters/sprites/s_echo.png",
-            "assets/characters/sprites/s_zyah.png",
-            "assets/characters/sprites/s_raze.png",
-            "assets/characters/sprites/s_vibe.png",
-            "assets/characters/sprites/s_torque.png",
-            "assets/characters/sprites/s_luma.png",
-            "assets/characters/sprites/s_lyric.png",
-            "assets/characters/sprites/s_ayo.png"
+            "assets/characters/portraits/echo.gif",
+            "assets/characters/portraits/zyah.gif",
+            "assets/characters/portraits/raze.gif",
+            "assets/characters/portraits/vibe.gif",
+            "assets/characters/portraits/torque.gif",
+            "assets/characters/portraits/luma.gif",
+            "assets/characters/portraits/lyric.gif",
+            "assets/characters/portraits/ayo.gif"
     };
 
     private static final String[][] CHARACTERS = {
@@ -64,9 +64,12 @@ public class BattleScreen extends JPanel {
     private int  spriteFlashAlpha = 0;  // White overlay ON the sprite only (0–255)
     private int  shakeDir        = 1;
 
+
+
     // NO full-screen flash — only the sprite itself flashes white
     private static final int SHAKE_TOTAL_FRAMES = 40;   // 40 × 50ms = 2 seconds
     private static final int SHAKE_INTERVAL_MS  = 50;   // 20 fps
+
 
     private Timer shakeTimer;
 
@@ -282,7 +285,7 @@ public class BattleScreen extends JPanel {
             int arrowX = (currentTurn == 1) ? p1X + SPRITE_W/2 : p2X + SPRITE_W/2;
             drawTurnArrow(g2, arrowX, groundY - SPRITE_H - 12);
         }
-        if (showDice) drawDice(g2, w / 2 - 160, groundY - 140);
+        if (showDice) drawDice(g2, w / 2 - 160, groundY - 240);
 
         int panelX = (w - PANEL_W) / 2;
         int panelY = h - PANEL_H - 20;
@@ -634,7 +637,7 @@ public class BattleScreen extends JPanel {
 
     private void doRollAndAttack() {
         waitingForRoll = false;
-        boolean isP1   = (currentTurn == 1);
+        boolean isP1 = (currentTurn == 1);
         int attackerIdx = isP1 ? p1Index : p2Index;
         int defenderIdx = isP1 ? p2Index : p1Index;
         String attackerName = CHARACTERS[attackerIdx][0];
@@ -644,7 +647,7 @@ public class BattleScreen extends JPanel {
         die2Val = rand.nextInt(6) + 1;
         int total = die1Val + die2Val;
         double mult = Double.parseDouble(CHARACTERS[attackerIdx][3]);
-        int damage = (int)(total * mult);
+        int damage = (int) (total * mult);
 
         boolean defending = isP1 ? p2Defending : p1Defending;
         if (defending) {
@@ -653,41 +656,47 @@ public class BattleScreen extends JPanel {
             addLog(defenderName + " blocked! Damage halved.");
         }
 
-        lastDamage = damage;
-        showDice   = true;
+        final int finalDamage = damage;  // ← effectively final copy for use in lambdas
+        lastDamage = finalDamage;
 
-        // Apply damage and trigger hit animation on the DEFENDER
         if (isP1) {
-            p2Hp = Math.max(0, p2Hp - damage);
-            startHitAnimation(2);   // P2 was hit
+            p2Hp = Math.max(0, p2Hp - finalDamage);
+            startHitAnimation(2);
         } else {
-            p1Hp = Math.max(0, p1Hp - damage);
-            startHitAnimation(1);   // P1 was hit
+            p1Hp = Math.max(0, p1Hp - finalDamage);
+            startHitAnimation(1);
         }
 
-        addLog(attackerName + " rolled " + die1Val + "+" + die2Val +
-                " = " + total + " × " + mult + "×");
-        addLog(attackerName + " deals " + damage + " damage to " + defenderName + "!");
+        int animDuration = SHAKE_TOTAL_FRAMES * SHAKE_INTERVAL_MS;
+        Timer showTimer = new Timer(animDuration, e -> {
+            showDice = true;
 
-        if (roundCount % 3 == 0 && rand.nextInt(100) < 30) {
-            String[] wildcards = {"FREEZE", "DOUBLE ROLL", "HEAL", "SHIELD"};
-            String w = wildcards[rand.nextInt(wildcards.length)];
-            if (isP1) p1Wildcard = w; else p2Wildcard = w;
-            addLog(attackerName + " drew wildcard: " + w + "!");
-        }
+            addLog(attackerName + " rolled " + die1Val + "+" + die2Val +
+                    " = " + total + " × " + mult + "×");
+            addLog(attackerName + " deals " + finalDamage + " damage to " + defenderName + "!");
+            if (roundCount % 3 == 0 && rand.nextInt(100) < 30) {
+                String[] wildcards = {"FREEZE", "DOUBLE ROLL", "HEAL", "SHIELD"};
+                String w = wildcards[rand.nextInt(wildcards.length)];
+                if (isP1) p1Wildcard = w;
+                else p2Wildcard = w;
+                addLog(attackerName + " drew wildcard: " + w + "!");
+            }
 
-        repaint();
-
-        Timer t = new Timer(2000, e -> {
-            showDice = false;
-            checkGameOver();
-            if (!gameOver) endTurn();
             repaint();
-        });
-        t.setRepeats(false);
-        t.start();
-    }
 
+            // Hide dice after 2 seconds
+            Timer hideTimer = new Timer(2000, e2 -> {
+                showDice = false;
+                checkGameOver();
+                if (!gameOver) endTurn();
+                repaint();
+            });
+            hideTimer.setRepeats(false);
+            hideTimer.start();
+        });
+        showTimer.setRepeats(false);
+        showTimer.start();
+    }
     private void doSpecialSkill(boolean isP1, String attacker, String defender) {
         int idx = isP1 ? p1Index : p2Index;
         String charName = CHARACTERS[idx][0];
@@ -822,7 +831,7 @@ public class BattleScreen extends JPanel {
         die2Val = rand.nextInt(6) + 1;
         int total = die1Val + die2Val;
         double mult = Double.parseDouble(CHARACTERS[p2Index][3]);
-        int damage = (int)(total * mult);
+        int damage = (int) (total * mult);
 
         if (p1Defending) {
             damage = Math.max(1, damage / 2);
@@ -830,29 +839,36 @@ public class BattleScreen extends JPanel {
             addLog(CHARACTERS[p1Index][0] + " blocked! Damage halved.");
         }
 
-        lastDamage = damage;
-        showDice   = true;
+        final int finalDamage = damage;  // ← effectively final copy for use in lambdas
+        lastDamage = finalDamage;
 
         // P1 takes the hit
-        p1Hp = Math.max(0, p1Hp - damage);
+        p1Hp = Math.max(0, p1Hp - finalDamage);
         startHitAnimation(1);   // P1 was hit
 
-        addLog(CHARACTERS[p2Index][0] + " rolled " + die1Val + "+" + die2Val +
-                " = " + total + " × " + mult + "×");
-        addLog("Deals " + damage + " damage to " + CHARACTERS[p1Index][0] + "!");
+        // Wait for hit animation to finish, THEN show dice and log
+        int animDuration = SHAKE_TOTAL_FRAMES * SHAKE_INTERVAL_MS;
+        Timer showTimer = new Timer(animDuration, e -> {
+            showDice = true;
 
-        repaint();
+            addLog(CHARACTERS[p2Index][0] + " rolled " + die1Val + "+" + die2Val +
+                    " = " + total + " × " + mult + "×");
+            addLog("Deals " + finalDamage + " damage to " + CHARACTERS[p1Index][0] + "!");
 
-        Timer t = new Timer(2000, e -> {
-            showDice = false;
-            checkGameOver();
-            if (!gameOver) endTurn();
             repaint();
-        });
-        t.setRepeats(false);
-        t.start();
-    }
 
+            Timer hideTimer = new Timer(2000, e2 -> {
+                showDice = false;
+                checkGameOver();
+                if (!gameOver) endTurn();
+                repaint();
+            });
+            hideTimer.setRepeats(false);
+            hideTimer.start();
+        });
+        showTimer.setRepeats(false);
+        showTimer.start();
+    }
     private void checkGameOver() {
         if (p1Hp <= 0 || p2Hp <= 0) {
             gameOver = true;

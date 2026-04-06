@@ -5,7 +5,6 @@ public class Main {
             GameWindow window = new GameWindow();
             window.setVisible(true);
 
-
         });
     }
 }

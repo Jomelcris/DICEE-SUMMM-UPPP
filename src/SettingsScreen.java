@@ -8,7 +8,7 @@ import java.io.IOException;
 
 public class SettingsScreen extends JPanel {
 
-    private static final String BG_PATH       = "assets/backgrounds/background_settings.png";
+    private static final String BG_PATH       = "assets/backgrounds/background_settings.gif";
     private static final String BTN_MUTE_PATH = "assets/buttons/btn_mute.png";
     private static final String BTN_BACK_PATH = "assets/buttons/btn_back.png";
 

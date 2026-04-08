@@ -46,7 +46,7 @@ public class BattleScreen extends JPanel {
     };
 
     // ── Sprite & panel sizes ──────────────────────────────────────────────────
-    private static final int SPRITE_W  = 160;
+    private static final int SPRITE_W  = 161;
     private static final int SPRITE_H  = 200;
     private static final int HP_BAR_W  = 220;
     private static final int HP_BAR_H  = 40;

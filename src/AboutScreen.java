@@ -14,7 +14,7 @@ public class AboutScreen extends JPanel {
     private static final String ARROW_RIGHT_PATH = "assets/ui/arrow_right.png";
     private static final String ARROW_LEFT_PATH  = "assets/ui/arrow_left.png";
 
-    private static final int BTN_WIDTH  = 250;
+    private static final int BTN_WIDTH  = 251;
     private static final int BTN_HEIGHT = 55;
     private static final int ARROW_SIZE = 80;
 

@@ -49,7 +49,7 @@ public class BattleScreen extends JPanel {
     private static final int SPRITE_W  = 160;
     private static final int SPRITE_H  = 200;
     private static final int HP_BAR_W  = 220;
-    private static final int HP_BAR_H  = 40;
+    private static final int HP_BAR_H  = 41;
     private static final int PANEL_H   = 230;
 
     // ── Hit Shake Animation ───────────────────────────────────────────────────

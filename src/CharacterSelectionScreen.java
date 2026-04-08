@@ -8,7 +8,7 @@ import java.io.IOException;
 
 public class CharacterSelectionScreen extends JPanel {
 
-    private static final String BG_PATH          = "assets/backgrounds/background_charselect.gif";
+    private static final String BG_PATH          = "assets/backgrounds/background_charselectt.png";
     private static final String BTN_CONFIRM_PATH = "assets/buttons/btn_confirm.png";
     private static final String BTN_BACK_PATH    = "assets/buttons/btn_back.png";
     private static final String ARROW_LEFT_PATH  = "assets/ui/arrow_left.png";

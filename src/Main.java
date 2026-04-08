@@ -4,7 +4,6 @@ public class Main {
         javax.swing.SwingUtilities.invokeLater(() -> {
             GameWindow window = new GameWindow();
             window.setVisible(true);
-
         });
     }
 }

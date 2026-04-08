@@ -75,6 +75,7 @@ public class CharacterSelectionScreen extends JPanel {
     private BufferedImage playerImg;
     private BufferedImage computerImg;
     private BufferedImage[] portraits = new BufferedImage[8];
+    private Image[]         portraitGifs = new Image[8];
 
     // ── Rectangles ────────────────────────────────────────────────────────────
     private Rectangle arrowLeftRect  = new Rectangle();
@@ -108,7 +109,15 @@ public class CharacterSelectionScreen extends JPanel {
         player2Img    = loadImage(PLAYER2_IMG_PATH);
         playerImg     = loadImage(PLAYER_IMG_PATH);
         computerImg   = loadImage(COMPUTER_IMG_PATH);
-        for (int i = 0; i < 8; i++) portraits[i] = loadImage(PORTRAIT_FILES[i]);
+        for (int i = 0; i < 8; i++) {
+            File f = new File(PORTRAIT_FILES[i]);
+            if (f.exists()) {
+                ImageIcon icon = new ImageIcon(PORTRAIT_FILES[i]);
+                portraitGifs[i] = icon.getImage();
+            } else {
+                portraits[i] = loadImage(PORTRAIT_FILES[i]);
+            }
+        }
     }
 
     private BufferedImage loadImage(String path) {
@@ -233,7 +242,12 @@ public class CharacterSelectionScreen extends JPanel {
         g2.setColor(new Color(240, 230, 210));
         g2.fillRect(portraitX, portraitY, PORTRAIT_W, PORTRAIT_H);
 
-        if (portraits[index] != null) {
+        if (portraitGifs[index] != null) {
+            // GIF — animated, needs 'this' to keep looping
+            g2.drawImage(portraitGifs[index], portraitX, portraitY,
+                    PORTRAIT_W, PORTRAIT_H, this);
+        } else if (portraits[index] != null) {
+            // Static PNG fallback
             g2.drawImage(portraits[index], portraitX, portraitY,
                     PORTRAIT_W, PORTRAIT_H, null);
         } else {

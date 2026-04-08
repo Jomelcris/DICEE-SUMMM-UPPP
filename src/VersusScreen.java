@@ -47,7 +47,7 @@ public class VersusScreen extends JPanel {
     private BufferedImage bgImage;
     private BufferedImage panelImage;
     private BufferedImage vsLabelImage;
-    private BufferedImage[] sprites = new BufferedImage[8];
+    private ImageIcon[] sprites = new ImageIcon[8];
 
     public VersusScreen(GameWindow gameWindow, int p1Index, int p2Index,
                         String gameMode, String p1Label, String p2Label) {
@@ -61,13 +61,16 @@ public class VersusScreen extends JPanel {
         loadImages();
         startAutoProceed();
     }
-
     private void loadImages() {
-        bgImage       = loadImage(BG_PATH);
-        panelImage    = loadImage(PANEL_PATH);
-        vsLabelImage  = loadImage(VS_LABEL_PATH);
+        bgImage      = loadImage(BG_PATH);
+        panelImage   = loadImage(PANEL_PATH);
+        vsLabelImage = loadImage(VS_LABEL_PATH);
         for (int i = 0; i < 8; i++) {
-            sprites[i] = loadImage(SPRITE_FILES[i]);
+            File f = new File(SPRITE_FILES[i]);
+            if (f.exists()) {
+                sprites[i] = new ImageIcon(SPRITE_FILES[i]);
+                sprites[i].setImageObserver(this); // triggers repaint on each frame
+            }
         }
     }
 
@@ -139,20 +142,19 @@ public class VersusScreen extends JPanel {
 
         // P1 — faces right (normal)
         if (sprites[p1Index] != null) {
-            g2.drawImage(sprites[p1Index], p1SpriteX, spriteY, spriteW, spriteH, null);
+            g2.drawImage(sprites[p1Index].getImage(), p1SpriteX, spriteY, spriteW, spriteH, this);
         } else {
             g2.setColor(new Color(80, 140, 255, 180));
             g2.fillRoundRect(p1SpriteX, spriteY, spriteW, spriteH, 16, 16);
         }
 
-        // P2 — flipped to face left (toward P1)
+// P2 — flipped to face left (toward P1)
         if (sprites[p2Index] != null) {
-            g2.drawImage(sprites[p2Index], p2SpriteX + spriteW, spriteY, -spriteW, spriteH, null);
+            g2.drawImage(sprites[p2Index].getImage(), p2SpriteX + spriteW, spriteY, -spriteW, spriteH, this);
         } else {
             g2.setColor(new Color(220, 80, 80, 180));
             g2.fillRoundRect(p2SpriteX, spriteY, spriteW, spriteH, 16, 16);
         }
-
         // ── VS label centered between sprites ────────────────────────────────
         int vsW = 130, vsH = 70;
         int vsX = (w - vsW) / 2;

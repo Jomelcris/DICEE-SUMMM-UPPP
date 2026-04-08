@@ -115,7 +115,7 @@ public class BattleScreen extends JPanel {
     // ── Assets ────────────────────────────────────────────────────────────────
     private BufferedImage   bgImage;
     private BufferedImage[] hpBars     = new BufferedImage[6];
-    private BufferedImage[] sprites    = new BufferedImage[8];
+    private ImageIcon[] sprites = new ImageIcon[8];
     private BufferedImage[] diceImages = new BufferedImage[6];
     private BufferedImage   arrowImg;
     private BufferedImage   btnAttackImg;
@@ -159,10 +159,17 @@ public class BattleScreen extends JPanel {
 
         String[] hpPaths = { HP_0_PATH, HP_20_PATH, HP_40_PATH,
                 HP_60_PATH, HP_80_PATH, HP_100_PATH };
+        for (int i = 0; i < 8; i++) {
+            File f = new File(SPRITE_FILES[i]);
+            if (f.exists()) {
+                sprites[i] = new ImageIcon(SPRITE_FILES[i]);
+                sprites[i].setImageObserver(this);
+            }
+        }
         for (int i = 0; i < 6; i++) hpBars[i]    = loadImage(hpPaths[i]);
-        for (int i = 0; i < 8; i++) sprites[i]   = loadImage(SPRITE_FILES[i]);
         for (int i = 0; i < 6; i++) diceImages[i] = loadImage("assets/dice/dice_" + (i + 1) + ".png");
-    }
+
+        }
 
     private BufferedImage loadImage(String path) {
         try { return ImageIO.read(new File(path)); }
@@ -314,35 +321,35 @@ public class BattleScreen extends JPanel {
     }
 
     // ── Draw sprite with optional flip and flash ──────────────────────────────
-    private void drawSprite(Graphics2D g2, BufferedImage img,
-                            int x, int y, int w, int h,
-                            boolean flipX, boolean isHit) {
-        if (img != null) {
-            if (flipX) g2.drawImage(img, x + w, y, -w, h, null);
-            else       g2.drawImage(img, x, y, w, h, null);
+        private void drawSprite(Graphics2D g2, ImageIcon icon,
+        int x, int y, int w, int h,
+        boolean flipX, boolean isHit) {
+            if (icon != null) {
+                Image img = icon.getImage();
+                if (flipX) g2.drawImage(img, x + w, y, -w, h, this);
+                else       g2.drawImage(img, x, y, w, h, this);
 
-            if (isHit && spriteFlashAlpha > 0) {
-                BufferedImage flash = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
-                Graphics2D fg = flash.createGraphics();
-                if (flipX) fg.drawImage(img, w, 0, -w, h, null);
-                else       fg.drawImage(img, 0, 0, w, h, null);
-                fg.setComposite(AlphaComposite.getInstance(
-                        AlphaComposite.SRC_ATOP, spriteFlashAlpha / 255f));
-                // Blue for defend, white for hit
-                fg.setColor(isDefendFlash ? new Color(80, 160, 255) : Color.WHITE);
-                fg.fillRect(0, 0, w, h);
-                fg.dispose();
-                g2.drawImage(flash, x, y, null);
+                if (isHit && spriteFlashAlpha > 0) {
+                    BufferedImage flash = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+                    Graphics2D fg = flash.createGraphics();
+                    if (flipX) fg.drawImage(img, w, 0, -w, h, null);
+                    else       fg.drawImage(img, 0, 0, w, h, null);
+                    fg.setComposite(AlphaComposite.getInstance(
+                            AlphaComposite.SRC_ATOP, spriteFlashAlpha / 255f));
+                    fg.setColor(isDefendFlash ? new Color(80, 160, 255) : Color.WHITE);
+                    fg.fillRect(0, 0, w, h);
+                    fg.dispose();
+                    g2.drawImage(flash, x, y, null);
+                }
+            } else {
+                Color c = flipX ? new Color(220, 80, 80) : new Color(80, 140, 255);
+                g2.setColor(c);
+                g2.fillRoundRect(x + 40, y, 80, 120, 10, 10);
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("Arial", Font.BOLD, 12));
+                g2.drawString("?", x + 74, y + 65);
             }
-        } else {
-            Color c = flipX ? new Color(220, 80, 80) : new Color(80, 140, 255);
-            g2.setColor(c);
-            g2.fillRoundRect(x + 40, y, 80, 120, 10, 10);
-            g2.setColor(Color.WHITE);
-            g2.setFont(new Font("Arial", Font.BOLD, 12));
-            g2.drawString("?", x + 74, y + 65);
         }
-    }
 
     // ── Round badge ───────────────────────────────────────────────────────────
     private void drawRoundBadge(Graphics2D g2, int w) {

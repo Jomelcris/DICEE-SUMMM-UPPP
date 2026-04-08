@@ -11,6 +11,7 @@ public class BattleScreen extends JPanel {
 
     // ── Asset paths ───────────────────────────────────────────────────────────
     private static final String BG_PATH           = "assets/backgrounds/background_battlescreenn.png";
+    private static final String BG_PVC_PATH       = "assets/backgrounds/background_battlescreen_pvc.png";
     private static final String ARROW_PATH        = "assets/ui/arrow_indicator.png";
     private static final String BTN_ATTACK_PATH   = "assets/buttons/btn_attack.png";
     private static final String BTN_SPECIAL_PATH  = "assets/buttons/btn_special.png";
@@ -27,7 +28,7 @@ public class BattleScreen extends JPanel {
             "assets/characters/portraits/echo.gif",
             "assets/characters/portraits/zyah.gif",
             "assets/characters/portraits/raze.gif",
-            "assets/characters/portraits/vibe.gif",
+            "assets/characters/portraits/vibee.gif",
             "assets/characters/portraits/torque.gif",
             "assets/characters/portraits/luma.gif",
             "assets/characters/portraits/lyric.gif",
@@ -44,6 +45,10 @@ public class BattleScreen extends JPanel {
             { "Lyric",  "Support",  "105", "2.0", "Healing Freestyle – Heal 35 HP (CD: 3 turns)"               },
             { "Ayo",    "Support",  "100", "2.0", "Ancestral Call – Revive 50% HP (CD: 5 turns, once/battle)"  },
     };
+
+    // ── Character dialogue ────────────────────────────────────────────────────
+    private String currentDialogue = "";
+    private String dialogueSpeaker = ""; // "p1" or "p2"
 
     // ── Sprite & panel sizes ──────────────────────────────────────────────────
     private static final int SPRITE_W  = 160;
@@ -115,7 +120,7 @@ public class BattleScreen extends JPanel {
     // ── Assets ────────────────────────────────────────────────────────────────
     private BufferedImage   bgImage;
     private BufferedImage[] hpBars     = new BufferedImage[6];
-    private ImageIcon[] sprites = new ImageIcon[8];
+    private ImageIcon[]     sprites    = new ImageIcon[8];
     private BufferedImage[] diceImages = new BufferedImage[6];
     private BufferedImage   arrowImg;
     private BufferedImage   btnAttackImg;
@@ -147,18 +152,27 @@ public class BattleScreen extends JPanel {
 
     // ── Image loading ─────────────────────────────────────────────────────────
     private void loadImages() {
-        bgImage    = loadImage(BG_PATH);
+        bgImage = loadImage(gameMode.equals("PVC") ? BG_PVC_PATH : BG_PATH);
 
         arrowImg       = loadImage(ARROW_PATH);
         btnAttackImg   = loadImage(BTN_ATTACK_PATH);
         btnSpecialImg  = loadImage(BTN_SPECIAL_PATH);
         btnDefendImg   = loadImage(BTN_DEFEND_PATH);
         btnWildcardImg = loadImage(BTN_WILDCARD_PATH);
-        p1LabelImg     = loadImage("assets/ui/player_1.png");
-        p2LabelImg     = loadImage("assets/ui/player_2.png");
+
+        if (gameMode.equals("PVC")) {
+            p1LabelImg = loadImage("assets/ui/player_1.png");
+            p2LabelImg = loadImage("assets/ui/computer.png");
+        } else {
+            p1LabelImg = loadImage("assets/ui/player_1.png");
+            p2LabelImg = loadImage("assets/ui/player_2.png");
+        }
 
         String[] hpPaths = { HP_0_PATH, HP_20_PATH, HP_40_PATH,
                 HP_60_PATH, HP_80_PATH, HP_100_PATH };
+        for (int i = 0; i < 6; i++) hpBars[i]    = loadImage(hpPaths[i]);
+        for (int i = 0; i < 6; i++) diceImages[i] = loadImage("assets/dice/dice_" + (i + 1) + ".png");
+
         for (int i = 0; i < 8; i++) {
             File f = new File(SPRITE_FILES[i]);
             if (f.exists()) {
@@ -166,10 +180,7 @@ public class BattleScreen extends JPanel {
                 sprites[i].setImageObserver(this);
             }
         }
-        for (int i = 0; i < 6; i++) hpBars[i]    = loadImage(hpPaths[i]);
-        for (int i = 0; i < 6; i++) diceImages[i] = loadImage("assets/dice/dice_" + (i + 1) + ".png");
-
-        }
+    }
 
     private BufferedImage loadImage(String path) {
         try { return ImageIO.read(new File(path)); }
@@ -260,7 +271,6 @@ public class BattleScreen extends JPanel {
             double progress = (double) shakeFrames / SHAKE_TOTAL_FRAMES;
             double eased    = progress * progress;
 
-            // Slide backward away from opponent
             shakeOffsetX = (int)(14 * eased * (player == 1 ? -1 : 1));
             shakeOffsetY = 0;
             spriteFlashAlpha = (int)(190 * eased);
@@ -321,35 +331,35 @@ public class BattleScreen extends JPanel {
     }
 
     // ── Draw sprite with optional flip and flash ──────────────────────────────
-        private void drawSprite(Graphics2D g2, ImageIcon icon,
-        int x, int y, int w, int h,
-        boolean flipX, boolean isHit) {
-            if (icon != null) {
-                Image img = icon.getImage();
-                if (flipX) g2.drawImage(img, x + w, y, -w, h, this);
-                else       g2.drawImage(img, x, y, w, h, this);
+    private void drawSprite(Graphics2D g2, ImageIcon icon,
+                            int x, int y, int w, int h,
+                            boolean flipX, boolean isHit) {
+        if (icon != null) {
+            Image img = icon.getImage();
+            if (flipX) g2.drawImage(img, x + w, y, -w, h, this);
+            else       g2.drawImage(img, x, y, w, h, this);
 
-                if (isHit && spriteFlashAlpha > 0) {
-                    BufferedImage flash = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
-                    Graphics2D fg = flash.createGraphics();
-                    if (flipX) fg.drawImage(img, w, 0, -w, h, null);
-                    else       fg.drawImage(img, 0, 0, w, h, null);
-                    fg.setComposite(AlphaComposite.getInstance(
-                            AlphaComposite.SRC_ATOP, spriteFlashAlpha / 255f));
-                    fg.setColor(isDefendFlash ? new Color(80, 160, 255) : Color.WHITE);
-                    fg.fillRect(0, 0, w, h);
-                    fg.dispose();
-                    g2.drawImage(flash, x, y, null);
-                }
-            } else {
-                Color c = flipX ? new Color(220, 80, 80) : new Color(80, 140, 255);
-                g2.setColor(c);
-                g2.fillRoundRect(x + 40, y, 80, 120, 10, 10);
-                g2.setColor(Color.WHITE);
-                g2.setFont(new Font("Arial", Font.BOLD, 12));
-                g2.drawString("?", x + 74, y + 65);
+            if (isHit && spriteFlashAlpha > 0) {
+                BufferedImage flash = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D fg = flash.createGraphics();
+                if (flipX) fg.drawImage(img, w, 0, -w, h, null);
+                else       fg.drawImage(img, 0, 0, w, h, null);
+                fg.setComposite(AlphaComposite.getInstance(
+                        AlphaComposite.SRC_ATOP, spriteFlashAlpha / 255f));
+                fg.setColor(isDefendFlash ? new Color(80, 160, 255) : Color.WHITE);
+                fg.fillRect(0, 0, w, h);
+                fg.dispose();
+                g2.drawImage(flash, x, y, null);
             }
+        } else {
+            Color c = flipX ? new Color(220, 80, 80) : new Color(80, 140, 255);
+            g2.setColor(c);
+            g2.fillRoundRect(x + 40, y, 80, 120, 10, 10);
+            g2.setColor(Color.WHITE);
+            g2.setFont(new Font("Arial", Font.BOLD, 12));
+            g2.drawString("?", x + 74, y + 65);
         }
+    }
 
     // ── Round badge ───────────────────────────────────────────────────────────
     private void drawRoundBadge(Graphics2D g2, int w) {
@@ -377,25 +387,8 @@ public class BattleScreen extends JPanel {
         double pct = (double) hp / maxHp;
         BufferedImage bar = getHpBarImage(pct);
 
-        // ── P1/P2 label image below character name ────────────────────────────
         int labelW = 60;
         int labelH = 25;
-
-        if (labelImg != null) {
-            if (!flip) {
-                // P1 label — left side, below char name
-                g2.drawImage(labelImg,
-                        x + (HP_BAR_W - labelW) / 2,
-                        y + HP_BAR_H + 38,
-                        labelW, labelH, null);
-            } else {
-                // P2 label — right side, below char name
-                g2.drawImage(labelImg,
-                        x + (HP_BAR_W - labelW) / 2,
-                        y + HP_BAR_H + 38,
-                        labelW, labelH, null);
-            }
-        }
 
         // ── Health bar image ──────────────────────────────────────────────────
         if (bar != null) {
@@ -406,7 +399,7 @@ public class BattleScreen extends JPanel {
             g2.fillRoundRect(x, y, HP_BAR_W, HP_BAR_H, 10, 10);
             Color barColor = pct > 0.6 ? new Color(80, 200, 80)
                     : pct > 0.3 ? new Color(220, 180, 30)
-                    : new Color(200, 60, 60);
+                      : new Color(200, 60, 60);
             g2.setColor(barColor);
             g2.fillRoundRect(x + 2, y + 2,
                     (int)((HP_BAR_W - 4) * pct), HP_BAR_H - 4, 8, 8);
@@ -437,16 +430,16 @@ public class BattleScreen extends JPanel {
                     y + HP_BAR_H + 40,
                     labelW, labelH, null);
         } else {
-            // Fallback text if image not found
             g2.setFont(new Font("Arial", Font.BOLD, 12));
             g2.setColor(flip ? new Color(220, 80, 80) : new Color(80, 140, 255));
-            String fallback = flip ? "P2" : "P1";
+            String fallback = flip ? (gameMode.equals("PVC") ? "CPU" : "P2") : "P1";
             FontMetrics fm3 = g2.getFontMetrics();
             g2.drawString(fallback,
                     x + (HP_BAR_W - fm3.stringWidth(fallback)) / 2,
                     y + HP_BAR_H + 55);
         }
     }
+
     private BufferedImage getHpBarImage(double pct) {
         if (pct <= 0.0)  return hpBars[0];
         if (pct <= 0.20) return hpBars[1];
@@ -518,10 +511,54 @@ public class BattleScreen extends JPanel {
 
     // ── Action panel ──────────────────────────────────────────────────────────
     private void drawActionPanel(Graphics2D g2, int px, int py, int w, int h) {
-        // Full-width panel background
 
         boolean isPlayerTurn = (currentTurn == 1) ||
                 (currentTurn == 2 && gameMode.equals("PVP"));
+
+        // ── LEFT: Character dialogue bubble ───────────────────────────────────
+        int bubbleX = 20;
+        int bubbleW = w / 3 - 20;
+        int bubbleH = 90;
+        int bubbleY = py + 20;
+
+        // Bubble background
+        g2.setColor(new Color(255, 255, 220, 220));
+        g2.fillRoundRect(bubbleX, bubbleY, bubbleW, bubbleH, 16, 16);
+        g2.setColor(new Color(120, 80, 30));
+        g2.setStroke(new BasicStroke(2));
+        g2.drawRoundRect(bubbleX, bubbleY, bubbleW, bubbleH, 16, 16);
+
+        // Triangle tail pointing up toward the speaking sprite
+        int tailX = dialogueSpeaker.equals("p1")
+                ? bubbleX + 30
+                : bubbleX + bubbleW - 30;
+        int[] tailPx = { tailX - 8, tailX + 8, tailX };
+        int[] tailPy = { bubbleY, bubbleY, bubbleY - 12 };
+        g2.setColor(new Color(255, 255, 220, 220));
+        g2.fillPolygon(tailPx, tailPy, 3);
+        g2.setColor(new Color(120, 80, 30));
+        g2.setStroke(new BasicStroke(1.5f));
+        g2.drawLine(tailX - 8, bubbleY, tailX, bubbleY - 12);
+        g2.drawLine(tailX + 8, bubbleY, tailX, bubbleY - 12);
+
+        // Speaker name
+        if (!dialogueSpeaker.isEmpty()) {
+            String speakerName = dialogueSpeaker.equals("p1")
+                    ? CHARACTERS[p1Index][0]
+                    : CHARACTERS[p2Index][0];
+            g2.setFont(new Font("Arial", Font.BOLD, 13));
+            g2.setColor(dialogueSpeaker.equals("p1")
+                    ? new Color(60, 100, 200)
+                    : new Color(180, 50, 50));
+            g2.drawString(speakerName + ":", bubbleX + 12, bubbleY + 22);
+        }
+
+        // Dialogue text (word-wrapped)
+        if (!currentDialogue.isEmpty()) {
+            g2.setFont(new Font("Arial", Font.ITALIC, 12));
+            g2.setColor(new Color(50, 30, 10));
+            drawWrappedText(g2, currentDialogue, bubbleX + 12, bubbleY + 40, bubbleW - 24, 18);
+        }
 
         // ── CENTER: 2x2 buttons ───────────────────────────────────────────────
         int btnW    = 180;
@@ -557,7 +594,7 @@ public class BattleScreen extends JPanel {
             int rightW       = w / 3 - 40;
             int rightCenterX = rightX + rightW / 2;
 
-            // ── Battle log lines at the top of the right section ─────────────
+            // ── Battle log lines ──────────────────────────────────────────────
             if (!logLine2.isEmpty()) {
                 g2.setFont(new Font("Arial", Font.PLAIN, 12));
                 g2.setColor(new Color(100, 60, 20));
@@ -624,6 +661,25 @@ public class BattleScreen extends JPanel {
         }
     }
 
+    // ── Word-wrap helper ──────────────────────────────────────────────────────
+    private void drawWrappedText(Graphics2D g2, String text, int x, int y, int maxWidth, int lineHeight) {
+        FontMetrics fm = g2.getFontMetrics();
+        String[] words = text.split(" ");
+        StringBuilder line = new StringBuilder();
+        int curY = y;
+        for (String word : words) {
+            String test = line.length() == 0 ? word : line + " " + word;
+            if (fm.stringWidth(test) <= maxWidth) {
+                line = new StringBuilder(test);
+            } else {
+                g2.drawString(line.toString(), x, curY);
+                line = new StringBuilder(word);
+                curY += lineHeight;
+            }
+        }
+        if (line.length() > 0) g2.drawString(line.toString(), x, curY);
+    }
+
     // ── Action button ─────────────────────────────────────────────────────────
     private void drawActionBtn(Graphics2D g2, Rectangle r,
                                boolean hover, String label, boolean enabled) {
@@ -643,7 +699,7 @@ public class BattleScreen extends JPanel {
         } else {
             Color bg = !enabled ? new Color(60, 60, 60, 160)
                     : hover    ? new Color(100, 180, 80)
-                    : new Color(30, 100, 50, 200);
+                      : new Color(30, 100, 50, 200);
             g2.setColor(bg);
             g2.fillRoundRect(r.x, r.y, r.width, r.height, 12, 12);
             g2.setColor(Color.WHITE);
@@ -695,6 +751,59 @@ public class BattleScreen extends JPanel {
         logLine3 = msg;
     }
 
+    // ── Character dialogue ────────────────────────────────────────────────────
+    private void setCharacterDialogue(boolean isP1, String action, int damage) {
+        dialogueSpeaker = isP1 ? "p1" : "p2";
+
+        String[] messages;
+        switch (action) {
+            case "attack_high":
+                messages = new String[]{
+                        "That's how it's done!",
+                        "Feel my power!",
+                        "Right where it hurts!",
+                        "You can't handle this!"
+                };
+                break;
+            case "attack_normal":
+                messages = new String[]{
+                        "Take that!",
+                        "Not so tough now!",
+                        "Just a taste of my power!",
+                        "Getting tired yet?"
+                };
+                break;
+            case "defend":
+                messages = new String[]{
+                        "Time to play defense!",
+                        "You won't get through!",
+                        "My defense is impenetrable!",
+                        "Try and hit me now!"
+                };
+                break;
+            case "special":
+                messages = new String[]{
+                        "Check this out!",
+                        "My special move!",
+                        "Time for my signature move!",
+                        "You're not ready for this!"
+                };
+                break;
+            case "wildcard":
+                messages = new String[]{
+                        "Look what I found!",
+                        "This should help!",
+                        "My turn for some luck!",
+                        "A little help from fate!"
+                };
+                break;
+            default:
+                messages = new String[]{ "Take this!" };
+                break;
+        }
+        currentDialogue = "\" " + messages[rand.nextInt(messages.length)] + " \"";
+    }
+
     private void onActionChosen(String action) {
         boolean isP1 = (currentTurn == 1);
         String attackerName = CHARACTERS[isP1 ? p1Index : p2Index][0];
@@ -702,6 +811,7 @@ public class BattleScreen extends JPanel {
 
         switch (action) {
             case "ATTACK":
+                setCharacterDialogue(isP1, "attack_normal", 0);
                 addLog(attackerName + " winds up for an attack!");
                 waitingForRoll = true;
                 repaint();
@@ -710,6 +820,7 @@ public class BattleScreen extends JPanel {
                 if ((isP1 && p1SkillCd > 0) || (!isP1 && p2SkillCd > 0)) {
                     addLog("Special is on cooldown!"); return;
                 }
+                setCharacterDialogue(isP1, "special", 0);
                 doSpecialSkill(isP1, attackerName, defenderName);
                 endTurn();
                 break;
@@ -717,6 +828,7 @@ public class BattleScreen extends JPanel {
                 if ((isP1 && p1DefendCd > 0) || (!isP1 && p2DefendCd > 0)) {
                     addLog("Defend is on cooldown!"); return;
                 }
+                setCharacterDialogue(isP1, "defend", 0);
                 if (isP1) { p1Defending = true; p1DefendCd = 3; }
                 else      { p2Defending = true; p2DefendCd = 3; }
                 addLog(attackerName + " takes a defensive stance!");
@@ -726,6 +838,7 @@ public class BattleScreen extends JPanel {
             case "WILDCARD":
                 String wc = isP1 ? p1Wildcard : p2Wildcard;
                 if (wc == null) { addLog("No wildcard available!"); return; }
+                setCharacterDialogue(isP1, "wildcard", 0);
                 doWildcard(isP1, wc, attackerName, defenderName);
                 if (isP1) p1Wildcard = null; else p2Wildcard = null;
                 endTurn();
@@ -756,6 +869,9 @@ public class BattleScreen extends JPanel {
 
         final int finalDamage = damage;
         lastDamage = finalDamage;
+
+        // Update dialogue based on actual damage dealt
+        setCharacterDialogue(isP1, finalDamage >= 15 ? "attack_high" : "attack_normal", finalDamage);
 
         if (isP1) { p2Hp = Math.max(0, p2Hp - finalDamage); startHitAnimation(2); }
         else      { p1Hp = Math.max(0, p1Hp - finalDamage); startHitAnimation(1); }
@@ -916,14 +1032,17 @@ public class BattleScreen extends JPanel {
 
         int decision = rand.nextInt(100);
         if (p2SkillCd == 0 && decision < 30) {
+            setCharacterDialogue(false, "special", 0);
             addLog(compName + " uses their special skill!");
             doSpecialSkill(false, compName, playerName);
         } else if (p2DefendCd == 0 && p2Hp < p2MaxHp * 0.4 && decision < 50) {
+            setCharacterDialogue(false, "defend", 0);
             p2Defending = true;
             p2DefendCd  = 3;
             addLog(compName + " takes a defensive stance!");
             startDefendAnimation(2);
         } else {
+            setCharacterDialogue(false, "attack_normal", 0);
             addLog(compName + " attacks " + playerName + "!");
             doComputerRoll();
             return;
@@ -947,6 +1066,9 @@ public class BattleScreen extends JPanel {
 
         final int finalDamage = damage;
         lastDamage = finalDamage;
+
+        // Update dialogue based on actual damage
+        setCharacterDialogue(false, finalDamage >= 15 ? "attack_high" : "attack_normal", finalDamage);
 
         p1Hp = Math.max(0, p1Hp - finalDamage);
         startHitAnimation(1);

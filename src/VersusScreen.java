@@ -15,7 +15,7 @@ public class VersusScreen extends JPanel {
             "assets/characters/portraits/echo.gif",
             "assets/characters/portraits/zyah.gif",
             "assets/characters/portraits/raze.gif",
-            "assets/characters/portraits/vibe.gif",
+            "assets/characters/portraits/vibee.gif",
             "assets/characters/portraits/torque.gif",
             "assets/characters/portraits/luma.gif",
             "assets/characters/portraits/lyric.gif",

@@ -455,9 +455,12 @@ public class CharacterSelectionScreen extends JPanel {
     // ── Button actions ────────────────────────────────────────────────────────
     private void onConfirmClicked() {
         if (gameMode.equals("ARCADE")) {
-            // TODO: switch to arcade screen
+            int chosenIndex = currentIndex;
+            ArcadeManager manager = new ArcadeManager(gameWindow, chosenIndex);
+            manager.startNext();
             return;
         }
+        // ... rest of your existing code unchanged
 
         if (currentPlayer == 1) {
             p1Choice      = currentIndex;

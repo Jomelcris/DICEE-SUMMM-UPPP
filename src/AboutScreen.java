@@ -8,8 +8,8 @@ import java.io.IOException;
 
 public class AboutScreen extends JPanel {
 
-    private static final String BG_PATH_1     = "assets/backgrounds/background_aboutt.png";
-    private static final String BG_PATH_2     = "assets/backgrounds/background_aboutt1.png"; // your 2nd image
+    private static final String BG_PATH_1     = "assets/backgrounds/background_about.png";
+    private static final String BG_PATH_2     = "assets/backgrounds/background_about1.png"; // your 2nd image
     private static final String BTN_BACK_PATH = "assets/buttons/btn_back.png";
     private static final String ARROW_RIGHT_PATH = "assets/ui/arrow_right.png";
     private static final String ARROW_LEFT_PATH  = "assets/ui/arrow_left.png";

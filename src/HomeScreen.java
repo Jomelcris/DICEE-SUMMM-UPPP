@@ -45,6 +45,8 @@ public class HomeScreen extends JPanel {
         setLayout(null);
         loadImages();
         addMouseListeners();
+        MusicManager.get().playBGM(MusicManager.BGM_HOME);
+
     }
 
     private void loadImages() {

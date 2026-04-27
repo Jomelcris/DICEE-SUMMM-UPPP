@@ -60,6 +60,7 @@ public class VersusScreen extends JPanel {
         setLayout(null);
         loadImages();
         startAutoProceed();
+        MusicManager.get().playBGM(MusicManager.BGM_VERSUS);
     }
     private void loadImages() {
         bgImage      = loadImage(BG_PATH);

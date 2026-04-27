@@ -7,7 +7,7 @@ import java.io.File;
 import java.io.IOException;
 public class GameModeScreen extends JPanel {
 
-    private static final String BG_PATH       = "assets/backgrounds/background_gamemodee.png";
+    private static final String BG_PATH       = "assets/backgrounds/background_gamemode.png";
     private static final String BTN_PVP_PATH  = "assets/buttons/btn_pvp.png";
     private static final String BTN_PVC_PATH  = "assets/buttons/btn_pvc.png";
     private static final String BTN_ARC_PATH  = "assets/buttons/btn_arcade.png";

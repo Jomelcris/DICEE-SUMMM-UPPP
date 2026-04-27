@@ -14,6 +14,7 @@ public class ArcadeVictoryScreen extends JPanel {
         this.battlesWon = battlesWon;
         setLayout(null);
         addMouseListeners();
+        MusicManager.get().playBGM(MusicManager.BGM_VICTORY);
     }
 
     @Override

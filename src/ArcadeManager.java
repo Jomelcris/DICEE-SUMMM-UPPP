@@ -4,23 +4,23 @@ public class ArcadeManager {
 
     // ── Boss data [name, class, hp, damage, special, gifPath] ────────────────
     public static final String[][] MINIBOSSES = {
-            { "Dreined",    "Support",  "125", "2.0", "Healing Aura – Heals 20 HP (CD: 3 turns)",          "assets/miniboss/drei.gif"     },
-            { "Dextereous", "Assassin", "100", "4.0", "Shadow Strike – Dodge next attack (CD: 4 turns)",   "assets/miniboss/dex.gif"      },
-            { "Cromel",     "Fighter",  "135", "3.0", "Flame Burst – +8 damage bonus (CD: 5 turns)",       "assets/miniboss/mel.gif"      },
-            { "Jeff Taller","Assassin", "100", "4.0", "Phantom Step – Extra turn (CD: 4 turns)",           "assets/miniboss/yan.gif"      },
-            { "JoshDrich",  "Tank",     "170", "2.0", "Ground Slam – Stun 2 turns (CD: 4 turns)",          "assets/miniboss/selos.gif"    },
+            { "Adji",    "Support",  "125", "2.0", "Healing Aura – Heals 20 HP (CD: 3 turns)",          "assets/miniboss/adji_idle.gif"     },
+            { "Dextereous", "Assassin", "100", "4.0", "Shadow Strike – Dodge next attack (CD: 4 turns)",   "assets/miniboss/dex_idle.gif"      },
+            { "Cromel",     "Fighter",  "135", "3.0", "Flame Burst – +8 damage bonus (CD: 5 turns)",       "assets/miniboss/cromel.gif"      },
+            { "Selos","Assassin", "100", "4.0", "Phantom Step – Extra turn (CD: 4 turns)",           "assets/miniboss/kenz_idle.gif"      },
+            { "Kenz",  "Tank",     "170", "2.0", "Ground Slam – Stun 2 turns (CD: 4 turns)",          "assets/miniboss/selos_idle.gif"    },
     };
 
     public static final String[] MINIFINAL_BOSS = {
             "Akhai", "Assassin", "250", "4.0",
             "Death Dance – Dodge + counter attack (CD: 5 turns)",
-            "assets/boss/minifinal.gif"
+            "assets/boss/khaigu.gif"
     };
 
     public static final String[] FINAL_BOSS = {
-            "Sir KhaiGu", "Master", "200", "3.0",
+            "KhaiGu", "Master", "200", "3.0",
             "HAGBONG KA SAKEN BOI – +5 damage every 4 turns",
-            "assets/boss/final.gif"
+            "assets/boss/khaigu.gif"
     };
 
     private int     currentBossIndex = 0; // 0-4 miniboss, 5 = minifinal, 6 = final
